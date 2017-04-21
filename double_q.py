@@ -2,68 +2,13 @@ from collections import deque
 import random
 import time
 import json
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import numpy as np 
 import gym
 from gym import wrappers
 from keras.models import load_model
+from architectures import mlp, dueling_network_naive, dueling_network_max, dueling_network_ave
+from util import one_hot_encoder, plot
 
-
-def mlp(state_size, action_size):
-	from keras.models import Sequential
-	from keras.layers import Dense, Flatten, Input
-
-	model = Sequential()
-	model.add(Dense(32, activation='relu', input_shape=(state_size,)))
-	model.add(Dense(32, activation='relu'))
-	model.add(Dense(action_size))
-	model.compile(loss='mse', optimizer='RMSprop', metrics=['mae'])
-	model.summary()
-
-	return model 
-
-
-def dueling_network_naive(state_size, action_size):
-	from keras.models import Model
-	from keras.layers import Dense, Flatten, Input, RepeatVector, add
-
-	inputs = Input(shape=(state_size,))
-	dense1 = Dense(32, activation='relu')(inputs)
-	dense2 = Dense(32, activation='relu')(dense1)
-	state_value = Dense(1)(dense2)
-	advantage = Dense(action_size)(dense2)
-	rep_state_value = Flatten()(RepeatVector(action_size)(state_value))
-	action_value = add([rep_state_value, advantage])
-	model = Model(inputs=inputs, outputs=action_value)
-	model.compile(optimizer='RMSprop', loss='MSE', metrics=['mae'])
-	model.summary()
-
-	return model 
-
-
-def dueling_network_max(state_size, action_size):
-	from keras.models import Sequential
-	from keras.layers import Dense, Lambda, Input
-	from keras import backend as K
-
-	model = Sequential()
-	model.add(Dense(32, activation='relu', input_shape=(state_size,)))
-	model.add(Dense(32, activation='relu'))
-	model.add(Dense(action_size+1))
-	model.add(Lambda(lambda a: K.expand_dims(a[:, 0], -1) + a[:, 1:] - K.max(a[:, 1:], keepdims=True),
-                   output_shape=(action_size,)))
-	model.compile(loss='mse', optimizer='RMSprop', metrics=['mae'])
-	model.summary()
-
-	return model 
-
-
-def one_hot_encoder(n, vec_size):
-	ret = np.zeros(vec_size)
-	ret[n] = 1
-	return ret
 
 # @profile
 def replay(replay_memory, action_function, estimate_function, update_estimate):
@@ -94,11 +39,6 @@ def replay(replay_memory, action_function, estimate_function, update_estimate):
 	if update_estimate:
 		loss_estimate = estimate_function.train_on_batch(x, y)[1]
 		# print 'Loss', loss_estimate, loss_action 
-
-
-def plot(rewards, q):
-	plt.plot(rewards, 'b', q, 'r')
-	plt.savefig('models/index.jpg')
 
 
 def e_greedy(epsilon, env, observation, state_size, action_function):
@@ -132,8 +72,8 @@ def train():
 	# initialize deep model
 	# action_function = mlp(state_size, action_size)
 	# estimate_function = mlp(state_size, action_size)
-	action_function = dueling_network_max(state_size, action_size)
-	estimate_function = dueling_network_max(state_size, action_size)
+	action_function = dueling_network_ave(state_size, action_size)
+	estimate_function = dueling_network_ave(state_size, action_size)
 	# action_function = load_model('models/actionQ_29000_2.00')
 	# estimate_function = load_model('models/estimateQ_29000_2.00')
 
@@ -141,8 +81,8 @@ def train():
 	episode_reward_tracker = []
 	episode_len_tracker = []
 	replay_memory = deque()
-	max_replay_memory_size = 100000
-	min_replay_memory_size = 50000
+	max_replay_memory_size = 200000
+	min_replay_memory_size = 100000
 	epsilon_start = 1
 	epsilon_end = 0.1
 	epsilon_decay_steps = 1000000
@@ -152,7 +92,7 @@ def train():
 	max_episode_steps = 200
 	action_update_freq = 4
 	estimate_update_freq = 20
-
+	model_save_freq = 100
 
 	for t in range(nb_episodes):
 		observation = env.reset()
@@ -176,7 +116,7 @@ def train():
 				ave_reward = sum(episode_reward_tracker[-100:]) / 100
 				ave_len = sum(episode_len_tracker[-100:]) / 100
 				print t, step, epsilon, ave_reward, ave_len, whole_reward 
-				if t % 1000 == 0 and len(replay_memory) > min_replay_memory_size:
+				if t % model_save_freq == 0 and len(replay_memory) > min_replay_memory_size:
 					plot(episode_reward_tracker, episode_len_tracker)
 					action_function.save('models/actionQ_%d_%.2lf' % (t, ave_reward))
 					estimate_function.save('models/estimateQ_%d_%.2lf' % (t, ave_reward))
