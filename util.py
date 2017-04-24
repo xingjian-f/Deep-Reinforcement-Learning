@@ -12,4 +12,12 @@ def plot(rewards, q):
 	import matplotlib.pyplot as plt
 
 	plt.plot(rewards, 'b', q, 'r')
-	plt.savefig('models/index.jpg')
+	plt.savefig('models/index_policy.jpg')
+
+
+def p_hot_encoder(n, vec_size, p):
+	import numpy as np 
+
+	ret = np.zeros(vec_size)
+	ret[n] = p
+	return ret	

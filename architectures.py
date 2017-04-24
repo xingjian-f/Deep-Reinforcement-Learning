@@ -46,7 +46,7 @@ def dueling_network_max(state_size, action_size):
 	rep_state_value = Flatten()(RepeatVector(action_size)(state_value))
 	action_value = add([rep_state_value, advantage, rep_max_advantage])
 	model = Model(inputs=inputs, outputs=action_value)
-	model.compile(optimizer='RMSprop', loss='MSE', metrics=['mae'])
+	model.compile(optimizer='adam', loss='MSE', metrics=['mae'])
 	model.summary()
 
 	return model 
@@ -71,4 +71,18 @@ def dueling_network_ave(state_size, action_size):
 	model.compile(optimizer='RMSprop', loss='MSE', metrics=['mae'])
 	model.summary()
 
-	return model 
+	return model
+
+
+def policy_network(state_size, action_size):
+	from keras.models import Sequential
+	from keras.layers import Dense, Flatten, Input
+
+	model = Sequential()
+	model.add(Dense(32, activation='relu', input_shape=(state_size,)))
+	model.add(Dense(32, activation='relu'))
+	model.add(Dense(action_size, activation='softmax'))
+	model.compile(loss='categorical_crossentropy', optimizer='RMSprop')
+	model.summary()
+
+	return model 	 
