@@ -72,8 +72,10 @@ def train():
 	# initialize deep model
 	# action_function = mlp(state_size, action_size)
 	# estimate_function = mlp(state_size, action_size)
-	action_function = dueling_network_ave(state_size, action_size)
-	estimate_function = dueling_network_ave(state_size, action_size)
+	# action_function = dueling_network_ave(state_size, action_size)
+	# estimate_function = dueling_network_ave(state_size, action_size)
+	action_function = dueling_network_max(state_size, action_size)
+	estimate_function = dueling_network_max(state_size, action_size)
 	# action_function = load_model('models/actionQ_29000_2.00')
 	# estimate_function = load_model('models/estimateQ_29000_2.00')
 
@@ -92,7 +94,7 @@ def train():
 	max_episode_steps = 200
 	action_update_freq = 4
 	estimate_update_freq = 20
-	model_save_freq = 100
+	model_save_freq = 500
 
 	for t in range(nb_episodes):
 		observation = env.reset()

@@ -82,7 +82,7 @@ def policy_network(state_size, action_size):
 	model.add(Dense(32, activation='relu', input_shape=(state_size,)))
 	model.add(Dense(32, activation='relu'))
 	model.add(Dense(action_size, activation='softmax'))
-	model.compile(loss='categorical_crossentropy', optimizer='RMSprop')
+	model.compile(loss='categorical_crossentropy', optimizer='adam')
 	model.summary()
 
 	return model 	 
